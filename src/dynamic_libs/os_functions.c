@@ -158,7 +158,14 @@ void InitOSFunctionPointers(void)
     //!----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     //! Special non library functions
     //!----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    if(OS_FIRMWARE == 532 || OS_FIRMWARE == 540)
+    if(OS_FIRMWARE == 550)
+    {
+        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x01010180);
+        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0101006C);
+        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x0100080C);
+        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF184E4);
+    }
+    else if(OS_FIRMWARE == 532 || OS_FIRMWARE == 540)
     {
         EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100FFA4);                // loader.elf
         EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100FE90);  // loader.elf
@@ -180,13 +187,13 @@ void InitOSFunctionPointers(void)
     }
     else if(OS_FIRMWARE == 410)
     {
-        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100F78C);                // ok
-        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100F678);  // ok
-        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x010007F8);              // ok
-        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF166DC);           // ok
+        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100F78C);
+        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100F678);
+        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x010007F8);
+        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF166DC);
 
-        EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19CC0);           // ok
-        EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE13BFC);         // ok
+        EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19CC0);
+        EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE13BFC);
     }
     else if(OS_FIRMWARE == 400) // same for 4.0.2 and 4.0.3
     {
@@ -198,33 +205,7 @@ void InitOSFunctionPointers(void)
         EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19CC0);
         EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE13BFC);
     }
-    else if(OS_FIRMWARE == 310)
-    {
-        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100C4E4);                // ok
-        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100C3D4);  // ok
-        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x010004D8);              // ok
-        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF15A0C);           // ok
 
-        EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19340);           // ok
-        EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE1329C);         // ok
-    }
-    else if(OS_FIRMWARE == 300 || OS_FIRMWARE == 301)
-    {
-        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100C4E4);                // ok
-        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100C3D4);  // ok
-        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x010004D8);              // ok
-        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF15974);           // ok
-
-        EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19340);           // ok
-        EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE1329C);         // ok
-    }
-	else if(OS_FIRMWARE == 550)
-    {
-        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x01010180);
-        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0101006C);
-        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x0100080C);
-        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF184E4);
-    }
     else
     {
         OSFatal("Missing all OS specific addresses.");

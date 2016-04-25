@@ -20,13 +20,17 @@
 #include "utils/StringTools.h"
 #include "KeyPadMenu.h"
 #include "ButtonChoiceMenu.h"
+#include "language/gettext.h"
+
+#define MAX_SETTINGS_PER_PAGE 3
 
 SettingsCategoryMenu::SettingsCategoryMenu(int w, int h, const std::string & title, const SettingType * catSettings, int settingsCount)
     : GuiFrame(w, h)
     , categorySettings(catSettings)
     , categorySettingsCount(settingsCount)
     , categoryFrame(w, h)
-//  , buttonClickSound(Resources::GetSound("settings_click_2.mp3"))
+    , scrollbar(h - 150)
+    , buttonClickSound(Resources::GetSound("settings_click_2.mp3"))
     , backImageData(Resources::GetImageData("backButton.png"))
     , backImage(backImageData)
     , backButton(backImage.getWidth(), backImage.getHeight())
@@ -40,30 +44,27 @@ SettingsCategoryMenu::SettingsCategoryMenu(int w, int h, const std::string & tit
     , buttonBTrigger(GuiTrigger::CHANNEL_ALL, GuiTrigger::BUTTON_B, true)
     , buttonUpTrigger(GuiTrigger::CHANNEL_ALL, GuiTrigger::BUTTON_UP | GuiTrigger::STICK_L_UP, true)
     , buttonDownTrigger(GuiTrigger::CHANNEL_ALL, GuiTrigger::BUTTON_DOWN | GuiTrigger::STICK_L_DOWN, true)
-    , DPADButtons(w,h)   
+    , DPADButtons(w,h)
     , updateButtons(false)
-	, selectedButtonDPAD(-1)
+    , selectedButtonDPAD(-1)
 {
     currentSettingsIdx = 0;
+    currentYOffset = 0;
 
     backButton.setImage(&backImage);
     backButton.setAlignment(ALIGN_BOTTOM | ALIGN_LEFT);
     backButton.clicked.connect(this, &SettingsCategoryMenu::OnBackButtonClick);
     backButton.setTrigger(&touchTrigger);
     backButton.setTrigger(&wpadTouchTrigger);
-//  backButton.setSoundClick(buttonClickSound);
+    backButton.setSoundClick(buttonClickSound);
     backButton.setEffectGrow();
-    categoryFrame.append(&backButton);
 
     titleText.setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     titleText.setFontSize(46);
     titleText.setPosition(0, 10);
     titleText.setBlurGlowColor(5.0f, glm::vec4(0.0, 0.0, 0.0f, 1.0f));
     titleText.setText(title.c_str());
-    categoryFrame.append(&titleImage);
-    categoryFrame.append(&titleText);
 
-    titleText.setParent(&titleImage);
     titleImage.setAlignment(ALIGN_MIDDLE | ALIGN_TOP);
 
     settings.resize(categorySettingsCount);
@@ -73,29 +74,45 @@ SettingsCategoryMenu::SettingsCategoryMenu(int w, int h, const std::string & tit
         settings[i].settingImage = new GuiImage(settingImageData);
         settings[i].settingImageSelected = new GuiImage(settingSelectedImageData);
         settings[i].settingButton = new GuiButton(settingImageData->getWidth(), settingImageData->getHeight());
-        settings[i].settingLabel = new GuiText(categorySettings[i].name, 46, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
+        settings[i].settingLabel = new GuiText(tr(categorySettings[i].name), 46, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
 
         settings[i].settingButton->setIconOver(settings[i].settingImageSelected);
-		settings[i].settingButton->setImage(settings[i].settingImage);
+        settings[i].settingButton->setImage(settings[i].settingImage);
         settings[i].settingButton->setLabel(settings[i].settingLabel);
-		
+
         settings[i].settingButton->setPosition(0, 150 - (settings[i].settingImage->getHeight() + 30) * i);
         settings[i].settingButton->setTrigger(&touchTrigger);
         settings[i].settingButton->setTrigger(&wpadTouchTrigger);
         settings[i].settingButton->setEffectGrow();
-//      settings[i].settingButton->setSoundClick(buttonClickSound);
+        settings[i].settingButton->setSoundClick(buttonClickSound);
         settings[i].settingButton->clicked.connect(this, &SettingsCategoryMenu::OnSettingButtonClick);
         categoryFrame.append(settings[i].settingButton);
     }
 
+    if(categorySettingsCount > MAX_SETTINGS_PER_PAGE)
+    {
+        scrollbar.SetPageSize((settingImageData->getHeight() + 30) * (categorySettingsCount - MAX_SETTINGS_PER_PAGE));
+        scrollbar.SetEntrieCount((settingImageData->getHeight() + 30) * (categorySettingsCount - MAX_SETTINGS_PER_PAGE));
+        scrollbar.setAlignment(ALIGN_CENTER | ALIGN_MIDDLE);
+        scrollbar.setPosition(500, -30);
+        scrollbar.listChanged.connect(this, &SettingsCategoryMenu::OnScrollbarListChange);
+        categoryFrame.append(&scrollbar);
+    }
+
+    // append on top
+    categoryFrame.append(&backButton);
+    categoryFrame.append(&titleImage);
+    categoryFrame.append(&titleText);
+    titleText.setParent(&titleImage);
+
     DPADButtons.setTrigger(&buttonBTrigger);
-    DPADButtons.setTrigger(&buttonATrigger);    
+    DPADButtons.setTrigger(&buttonATrigger);
     DPADButtons.setTrigger(&buttonDownTrigger);
     DPADButtons.setTrigger(&buttonUpTrigger);
-    DPADButtons.clicked.connect(this, &SettingsCategoryMenu::OnDPADClick);    
+    DPADButtons.clicked.connect(this, &SettingsCategoryMenu::OnDPADClick);
     append(&DPADButtons);
-	
-	categoryFrame.append(&DPADButtons);
+
+    categoryFrame.append(&DPADButtons);
 
     append(&categoryFrame);
 }
@@ -111,14 +128,14 @@ SettingsCategoryMenu::~SettingsCategoryMenu()
     }
     Resources::RemoveImageData(backImageData);
     Resources::RemoveImageData(titleImageData);
-    Resources::RemoveImageData(settingImageData);    
+    Resources::RemoveImageData(settingImageData);
     Resources::RemoveImageData(settingSelectedImageData);
-//  Resources::RemoveSound(buttonClickSound);
+    Resources::RemoveSound(buttonClickSound);
 }
 
 void SettingsCategoryMenu::OnSettingButtonClick(GuiButton *button, const GuiController *controller, GuiTrigger *trigger)
 {
-    for(u32 i = 0; i < settings.size(); i++) // Touch overrides selection 
+    for(u32 i = 0; i < settings.size(); i++) // Touch overrides selection
     {
         if(button == settings[i].settingButton)
         {
@@ -127,7 +144,7 @@ void SettingsCategoryMenu::OnSettingButtonClick(GuiButton *button, const GuiCont
         }
     }
     u32 i = currentSettingsIdx;
-    
+
     GuiFrame *menu = NULL;
     switch(categorySettings[i].type)
     {
@@ -138,15 +155,15 @@ void SettingsCategoryMenu::OnSettingButtonClick(GuiButton *button, const GuiCont
             if(CSettings::getDataType(categorySettings[i].index) != CSettings::TypeString)
                 return;
 
-            KeyPadMenu *keyMenu = new KeyPadMenu(width, height, categorySettings[i].name, CSettings::getValueAsString(categorySettings[i].index));
+            KeyPadMenu *keyMenu = new KeyPadMenu(width, height, tr(categorySettings[i].name), CSettings::getValueAsString(categorySettings[i].index));
             keyMenu->settingsBackClicked.connect(this, &SettingsCategoryMenu::OnSubMenuCloseClicked);
             keyMenu->settingsOkClicked.connect(this, &SettingsCategoryMenu::OnKeyPadOkClicked);
             menu = keyMenu;
             break;
         }
         case Type2Buttons:
-        case Type3Buttons: 
-		case Type4Buttons: {
+        case Type3Buttons:
+        case Type4Buttons: {
             int buttonCount = Type2Buttons + (categorySettings[i].type - Type2Buttons + 1);
             int buttonSelected = 0;
 
@@ -180,9 +197,9 @@ void SettingsCategoryMenu::OnSettingButtonClick(GuiButton *button, const GuiCont
 
             std::vector<std::string> buttonNames;
             for(int n = 0; n < buttonCount; n++)
-                buttonNames.push_back(categorySettings[i].valueStrings[n].name);
+                buttonNames.push_back(tr(categorySettings[i].valueStrings[n].name));
 
-            ButtonChoiceMenu *buttonMenu = new ButtonChoiceMenu(width, height, categorySettings[i].name, buttonNames, buttonSelected);
+            ButtonChoiceMenu *buttonMenu = new ButtonChoiceMenu(width, height, tr(categorySettings[i].name), buttonNames, buttonSelected);
             buttonMenu->settingsBackClicked.connect(this, &SettingsCategoryMenu::OnSubMenuCloseClicked);
             buttonMenu->settingsOkClicked.connect(this, &SettingsCategoryMenu::OnButtonChoiceOkClicked);
             menu = buttonMenu;
@@ -249,47 +266,55 @@ void SettingsCategoryMenu::OnButtonChoiceOkClicked(GuiElement *element, int sele
 
 void SettingsCategoryMenu::OnDPADClick(GuiButton *button, const GuiController *controller, GuiTrigger *trigger)
 {
-	if(trigger == &buttonATrigger)
-	{
+    if(trigger == &buttonATrigger)
+    {
         //! do not auto launch when wiimote is pointing to screen and presses A
         if((controller->chan & (GuiTrigger::CHANNEL_2 | GuiTrigger::CHANNEL_3 | GuiTrigger::CHANNEL_4 | GuiTrigger::CHANNEL_5)) && controller->data.validPointer)
         {
             return;
         }
-		OnSettingButtonClick(button,controller,trigger);
-	}
-	else if(trigger == &buttonBTrigger)
-	{
-		OnBackButtonClick(button,controller,trigger);
-	}
-	else if(trigger == &buttonUpTrigger || trigger == &buttonDownTrigger)
-	{			
-		if(selectedButtonDPAD == -1)
-		{
-			selectedButtonDPAD = currentSettingsIdx;
-		}
-		else
-		{				
-			if(trigger == &buttonUpTrigger)
-			{
-				if(currentSettingsIdx > 0){
-					currentSettingsIdx--;
-				}else{
-					currentSettingsIdx = categorySettingsCount-1;
-				}
-			}else if(trigger == &buttonDownTrigger){
-				if(currentSettingsIdx < categorySettingsCount-1){
-					currentSettingsIdx++;
-				}else{
-					currentSettingsIdx = 0;
-				}
-			}
-			selectedButtonDPAD = currentSettingsIdx;
-		}
-		updateButtons = true;
-	}  
+        OnSettingButtonClick(button,controller,trigger);
+    }
+    else if(trigger == &buttonBTrigger)
+    {
+        OnBackButtonClick(button,controller,trigger);
+    }
+    else if(trigger == &buttonUpTrigger || trigger == &buttonDownTrigger)
+    {
+        if(selectedButtonDPAD == -1)
+        {
+            selectedButtonDPAD = currentSettingsIdx;
+        }
+        else
+        {
+            if(trigger == &buttonUpTrigger)
+            {
+                if(currentSettingsIdx > 0){
+                    currentSettingsIdx--;
+                }
+            }
+            else if(trigger == &buttonDownTrigger){
+                if(currentSettingsIdx < categorySettingsCount-1){
+                    currentSettingsIdx++;
+                }
+            }
+            selectedButtonDPAD = currentSettingsIdx;
+        }
+
+        scrollbar.SetSelectedItem((settingImageData->getHeight() + 30) * selectedButtonDPAD);
+        updateButtons = true;
+    }
 }
 
+void SettingsCategoryMenu::OnScrollbarListChange(int selectItem, int pageIndex)
+{
+    currentYOffset = selectItem + pageIndex;
+
+    for(int i = 0; i < categorySettingsCount; i++)
+    {
+        settings[i].settingButton->setPosition(0, 150 - (settings[i].settingImage->getHeight() + 30) * i + currentYOffset);
+    }
+}
 
 void SettingsCategoryMenu::OnKeyPadOkClicked(GuiElement *element, const std::string & newValue)
 {
@@ -338,15 +363,19 @@ void SettingsCategoryMenu::OnSubMenuCloseEffectFinish(GuiElement *element)
 
 void SettingsCategoryMenu::update(GuiController *c)
 {
-    if(updateButtons){
-        for(int i = 0; i < categorySettingsCount; i++){
-            if(i == selectedButtonDPAD){
+    if(updateButtons)
+    {
+        for(int i = 0; i < categorySettingsCount; i++)
+        {
+            if(i == selectedButtonDPAD) {
                 settings[i].settingButton->setState(STATE_SELECTED);
-            }else{
+            }
+            else {
                 settings[i].settingButton->clearState(STATE_SELECTED);
             }
         }
         updateButtons = false;
     }
+
     GuiFrame::update(c);
 }

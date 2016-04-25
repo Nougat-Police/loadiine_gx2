@@ -1,5 +1,6 @@
 #if (VER == 550)
     #define BAT_SETUP_HOOK_ADDR         0xFFF1D624
+
     # not all of those NOP address are required for every firmware
     # mainly these should stop the kernel from removing our IBAT4 and DBAT5
     #define BAT_SET_NOP_ADDR_1          0xFFF06B6C
@@ -16,8 +17,6 @@
 #elif ((VER == 532) || (VER == 540))
     #define BAT_SETUP_HOOK_ADDR         0xFFF1D638
 
-    # not all of those NOP address are required for every firmware
-    # mainly these should stop the kernel from removing our IBAT4 and DBAT5
     #define BAT_SET_NOP_ADDR_1          0xFFF06A14
     #define BAT_SET_NOP_ADDR_2          0xFFF06AA0
     #define BAT_SET_NOP_ADDR_3          0xFFF003C8
@@ -42,20 +41,20 @@
 
     #define BAT_SET_NOP_ADDR_8          0xFFEE10B8
     #define BAT_SET_NOP_ADDR_9          0xFFEE10BC
-#elif VER == 410
-    #define BAT_SETUP_HOOK_ADDR         0xFFF1AD00 // ok
+#elif (VER == 410)
+    #define BAT_SETUP_HOOK_ADDR         0xFFF1AD00
 
-    #define BAT_SET_NOP_ADDR_1          0xFFF06708 // ok
-    #define BAT_SET_NOP_ADDR_2          0xFFF06794 // ok
-    #define BAT_SET_NOP_ADDR_3          0xFFF003C8 // ok
-    #define BAT_SET_NOP_ADDR_4          0xFFF003CC // ok
-    #define BAT_SET_NOP_ADDR_5          0xFFF1ADE8 // ok
-    #define BAT_SET_NOP_ADDR_6          0xFFF1AE04 // ok
-    #define BAT_SET_NOP_ADDR_7          0xFFF1AF08 // ok
+    #define BAT_SET_NOP_ADDR_1          0xFFF06708
+    #define BAT_SET_NOP_ADDR_2          0xFFF06794
+    #define BAT_SET_NOP_ADDR_3          0xFFF003C8
+    #define BAT_SET_NOP_ADDR_4          0xFFF003CC
+    #define BAT_SET_NOP_ADDR_5          0xFFF1ADE8
+    #define BAT_SET_NOP_ADDR_6          0xFFF1AE04
+    #define BAT_SET_NOP_ADDR_7          0xFFF1AF08
 
-    #define BAT_SET_NOP_ADDR_8          0xFFEE10B8 // ok
-    #define BAT_SET_NOP_ADDR_9          0xFFEE10BC // ok
-#elif VER == 400
+    #define BAT_SET_NOP_ADDR_8          0xFFEE10B8
+    #define BAT_SET_NOP_ADDR_9          0xFFEE10BC
+#elif (VER == 400)
     #define BAT_SETUP_HOOK_ADDR         0xFFF1A440
 
     #define BAT_SET_NOP_ADDR_1          0xFFF066FC
@@ -64,11 +63,11 @@
     #define BAT_SET_NOP_ADDR_4          0xFFF003CC
     #define BAT_SET_NOP_ADDR_5          0xFFF1A528
     #define BAT_SET_NOP_ADDR_6          0xFFF1A544
-//  #define BAT_SET_NOP_ADDR_7          not present in 400
+//  #define BAT_SET_NOP_ADDR_7          not present in 4.0.0
 
     #define BAT_SET_NOP_ADDR_8          0xFFEE0F50
     #define BAT_SET_NOP_ADDR_9          0xFFEE0F54
-#elif VER == 310
+#elif (VER == 310)
     #define BAT_SETUP_HOOK_ADDR         0xFFF19EC4 // ok
 
     #define BAT_SET_NOP_ADDR_1          0xFFF06590 // ok
@@ -77,7 +76,7 @@
     #define BAT_SET_NOP_ADDR_4          0xFFF003CC // ok
     #define BAT_SET_NOP_ADDR_5          0xFFF19FAC // ok
     #define BAT_SET_NOP_ADDR_6          0xFFF19FC8 // ok
-//  #define BAT_SET_NOP_ADDR_7          not present in 310
+//  #define BAT_SET_NOP_ADDR_7          not present in 3.1.0
 
     #define BAT_SET_NOP_ADDR_8          0xFFEE0FB0 // ok
     #define BAT_SET_NOP_ADDR_9          0xFFEE0FB4 // ok
@@ -90,7 +89,7 @@
     #define BAT_SET_NOP_ADDR_4          0xFFF003CC // ok
     #define BAT_SET_NOP_ADDR_5          0xFFF19F14 // ok
     #define BAT_SET_NOP_ADDR_6          0xFFF19F30 // ok
-//  #define BAT_SET_NOP_ADDR_7          not present in 30X
+//  #define BAT_SET_NOP_ADDR_7          not present in 3.0.x
 
     #define BAT_SET_NOP_ADDR_8          0xFFEE0DB8 // ok
     #define BAT_SET_NOP_ADDR_9          0xFFEE0DBC // ok
@@ -105,7 +104,13 @@
 #endif
 
 #define BAT4U_VAL                       0x008000FF
-#define BAT4L_VAL                       0x30800012
+#if VER >= 410
+    #define BAT4L_VAL                   0x30800012
+#elif VER == 400
+    #define BAT4L_VAL                   0x4E800012
+#else
+    #error Please define valid value for firmware setup.
+#endif
 
 #define SET_R4_TO_ADDR(addr)        \
     lis r3, addr@h              ;   \
@@ -113,6 +118,12 @@
     stw r4, 0(r3)               ;   \
     dcbf 0, r3                  ;   \
     icbi 0, r3                  ;
+
+     .globl SC_0x25_KernelCopyData
+SC_0x25_KernelCopyData:
+    li r0, 0x2500
+    sc
+    blr
 
      .globl Syscall_0x36
 Syscall_0x36:

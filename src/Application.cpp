@@ -17,6 +17,7 @@
 #include "Application.h"
 #include "dynamic_libs/os_functions.h"
 #include "gui/FreeTypeGX.h"
+#include "gui/GuiImageAsync.h"
 #include "gui/VPadController.h"
 #include "gui/WPadController.h"
 #include "game/GameList.h"
@@ -31,7 +32,7 @@ bool Application::exitApplication = false;
 
 Application::Application()
     : CThread(CThread::eAttributeAffCore0 | CThread::eAttributePinnedAff, 0, 0x20000)
-//  , bgMusic(NULL)
+    , bgMusic(NULL)
     , video(NULL)
     , mainWindow(NULL)
 {
@@ -49,7 +50,7 @@ Application::Application()
     Resources::LoadFiles("sd:/wiiu/apps/loadiine_gx2/resources");
 
     //! create bgMusic
-/*  if(CSettings::getValueAsString(CSettings::BgMusicPath).empty())
+    if(CSettings::getValueAsString(CSettings::BgMusicPath).empty())
     {
         bgMusic = new GuiSound(Resources::GetFile("bgMusic.ogg"), Resources::GetFileSize("bgMusic.ogg"));
     }
@@ -60,23 +61,33 @@ Application::Application()
     bgMusic->SetLoop(true);
     bgMusic->Play();
     bgMusic->SetVolume(50);
-*/
-	exitApplication = false;
+
+    //! load language
+    if(!CSettings::getValueAsString(CSettings::AppLanguage).empty())
+    {
+        std::string languagePath = "sd:/wiiu/apps/loadiine_gx2/languages/" + CSettings::getValueAsString(CSettings::AppLanguage) + ".lang";
+                gettextLoadLanguage(languagePath.c_str());
+    }
+
+        exitApplication = false;
 }
 
 Application::~Application()
 {
     GameList::destroyInstance();
 
-//  delete bgMusic;
+    delete bgMusic;
 
     for(int i = 0; i < 5; i++)
         delete controller[i];
 
-	AsyncDeleter::destroyInstance();
+    AsyncDeleter::destroyInstance();
+    GuiImageAsync::threadExit();
     Resources::Clear();
 
-	SoundHandler::DestroyInstance();
+    SoundHandler::DestroyInstance();
+
+    gettextCleanUp();
 }
 
 void Application::exec()
@@ -84,14 +95,14 @@ void Application::exec()
     //! start main GX2 thread
     resumeThread();
     //! now wait for thread to finish
-	shutdownThread();
+    shutdownThread();
 }
 
 void Application::fadeOut()
 {
     GuiImage fadeOut(video->getTvWidth(), video->getTvHeight(), (GX2Color){ 0, 0, 0, 255 });
 
-	for(int i = 0; i < 255; i += 10)
+    for(int i = 0; i < 255; i += 10)
     {
         if(i > 255)
             i = 255;
@@ -99,30 +110,30 @@ void Application::fadeOut()
         fadeOut.setAlpha(i / 255.0f);
 
         //! start rendering DRC
-	    video->prepareDrcRendering();
-	    mainWindow->drawDrc(video);
+        video->prepareDrcRendering();
+        mainWindow->drawDrc(video);
 
         GX2SetDepthOnlyControl(GX2_DISABLE, GX2_DISABLE, GX2_COMPARE_ALWAYS);
         fadeOut.draw(video);
         GX2SetDepthOnlyControl(GX2_ENABLE, GX2_ENABLE, GX2_COMPARE_LEQUAL);
 
-	    video->drcDrawDone();
+        video->drcDrawDone();
 
         //! start rendering TV
-	    video->prepareTvRendering();
+        video->prepareTvRendering();
 
-	    mainWindow->drawTv(video);
+        mainWindow->drawTv(video);
 
         GX2SetDepthOnlyControl(GX2_DISABLE, GX2_DISABLE, GX2_COMPARE_ALWAYS);
         fadeOut.draw(video);
         GX2SetDepthOnlyControl(GX2_ENABLE, GX2_ENABLE, GX2_COMPARE_LEQUAL);
 
-	    video->tvDrawDone();
+        video->tvDrawDone();
 
-	    //! as last point update the effects as it can drop elements
-	    mainWindow->updateEffects();
+        //! as last point update the effects as it can drop elements
+        mainWindow->updateEffects();
 
-	    video->waitForVSync();
+        video->waitForVSync();
     }
 
     //! one last cleared black screen
@@ -160,10 +171,10 @@ void Application::executeThread(void)
     log_printf("Entering main loop\n");
 
     //! main GX2 loop (60 Hz cycle with max priority on core 1)
-	while(!exitApplication)
-	{
-	    //! Read out inputs
-	    for(int i = 0; i < 5; i++)
+    while(!exitApplication)
+    {
+        //! Read out inputs
+        for(int i = 0; i < 5; i++)
         {
             if(controller[i]->update(video->getTvWidth(), video->getTvHeight()) == false)
                 continue;
@@ -176,33 +187,33 @@ void Application::executeThread(void)
         }
 
         //! start rendering DRC
-	    video->prepareDrcRendering();
-	    mainWindow->drawDrc(video);
-	    video->drcDrawDone();
+        video->prepareDrcRendering();
+        mainWindow->drawDrc(video);
+        video->drcDrawDone();
 
         //! start rendering TV
-	    video->prepareTvRendering();
-	    mainWindow->drawTv(video);
-	    video->tvDrawDone();
+        video->prepareTvRendering();
+        mainWindow->drawTv(video);
+        video->tvDrawDone();
 
         //! enable screen after first frame render
-	    if(video->getFrameCount() == 0) {
+        if(video->getFrameCount() == 0) {
             video->tvEnable(true);
             video->drcEnable(true);
-	    }
+        }
 
-	    //! as last point update the effects as it can drop elements
-	    mainWindow->updateEffects();
+        //! as last point update the effects as it can drop elements
+        mainWindow->updateEffects();
 
-	    video->waitForVSync();
+        video->waitForVSync();
 
         //! transfer elements to real delete list here after all processes are finished
         //! the elements are transfered to another list to delete the elements in a separate thread
         //! and avoid blocking the GUI thread
         AsyncDeleter::triggerDeleteProcess();
-	}
+    }
 
-	fadeOut();
+    fadeOut();
 
     delete mainWindow;
     delete fontSystem;

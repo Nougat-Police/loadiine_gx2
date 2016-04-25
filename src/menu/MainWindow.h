@@ -151,6 +151,7 @@ private:
     GuiImageData *pointerImgData[4];
     GuiImage *pointerImg[4];
     bool pointerValid[4];
+    bool launchingGame;
 };
 
 #endif //_MAIN_WINDOW_H_

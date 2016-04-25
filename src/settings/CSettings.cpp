@@ -24,6 +24,7 @@
 #include "fs/CFile.hpp"
 #include "fs/fs_utils.h"
 #include "utils/StringTools.h"
+#include "language/gettext.h"
 
 #define VERSION_LINE        "# Loadiine GX2 - Main settings file v"
 #define VALID_VERSION       1
@@ -105,6 +106,10 @@ void CSettings::SetDefault()
     settingsValues[ConsoleRegionCode].dataType = TypeString;
     settingsValues[ConsoleRegionCode].strValue = new std::string("EN");
 
+	settingsNames[AppLanguage] = "AppLanguage";
+    settingsValues[AppLanguage].dataType = TypeString;
+    settingsValues[AppLanguage].strValue = new std::string();
+
     settingsNames[DebugLoggerIP] = "DebugLoggerIP";
     settingsValues[DebugLoggerIP].dataType = TypeString;
     settingsValues[DebugLoggerIP].strValue = new std::string("192.168.178.3");
@@ -115,11 +120,11 @@ void CSettings::SetDefault()
 
 	settingsNames[PadconMode] = "PadconMode";
     settingsValues[PadconMode].dataType = TypeU8;
-    settingsValues[PadconMode].ucValue = PADCON_DISABLED;
+    settingsValues[PadconMode].ucValue = SETTING_OFF;
 
     settingsNames[LaunchPyGecko] = "LaunchPyGecko";
     settingsValues[LaunchPyGecko].dataType = TypeU8;
-    settingsValues[LaunchPyGecko].ucValue = 0;
+    settingsValues[LaunchPyGecko].ucValue = SETTING_OFF;
 
 }
 
@@ -127,6 +132,7 @@ bool CSettings::Load()
 {
 	//! Reset default path variables to the right device
 	SetDefault();
+
 
 	std::string filepath = configPath;
 	filepath += "/loadiine_gx2.cfg";

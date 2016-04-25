@@ -25,6 +25,7 @@
 #include "gui/GuiIconCarousel.h"
 #include "gui/GuiIconGrid.h"
 #include "settings/CSettings.h"
+#include "common/retain_vars.h"
 #include "utils/StringTools.h"
 #include "utils/logger.h"
 
@@ -35,6 +36,7 @@ MainWindow::MainWindow(int w, int h)
     , mainSwitchButtonFrame(NULL)
     , currentTvFrame(NULL)
     , currentDrcFrame(NULL)
+    , launchingGame(false)
 
 {
     for(int i = 0; i < 4; i++)
@@ -352,7 +354,7 @@ void MainWindow::OnLayoutSwitchEffectFinish(GuiElement *element)
     currentDrcFrame->resetState();
     currentDrcFrame->setEffect(EFFECT_FADE, 15, 255);
 
-    mainSwitchButtonFrame->resetState();
+    mainSwitchButtonFrame->clearState(GuiElement::STATE_DISABLED);
 
     //! reconnect only to DRC game selection change
     currentTvFrame->gameSelectionChanged.disconnect(this);
@@ -391,6 +393,11 @@ void MainWindow::OnLayoutSwitchClicked(GuiElement *element)
 
 void MainWindow::OnGameLaunch(GuiGameBrowser *element, int gameIdx)
 {
+    if (launchingGame)
+        return;
+
+    launchingGame = true;
+
     CSettings::setValueAsU16(CSettings::GameStartIndex,gameIdx);
 
 //  if(gameClickSound)
@@ -430,10 +437,13 @@ void MainWindow::OnGameLoadFinish(GameLauncher * launcher, const discHeader *hea
         SERVER_IP = ip.s_addr;
         GAME_LAUNCHED = 1;
         GAME_RPX_LOADED = 0;
-        LAUNCH_PYGECKO = CSettings::getValueAsU8(CSettings::LaunchPyGecko);
         LOADIINE_MODE = CSettings::getValueAsU8(CSettings::GameLaunchMethod);
+        gSettingLaunchPyGecko = CSettings::getValueAsU8(CSettings::LaunchPyGecko);
 
         Application::instance()->quit();
+    }
+    else {
+        launchingGame = false;
     }
 
     mainSwitchButtonFrame->resetState();
