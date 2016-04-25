@@ -205,7 +205,26 @@ void InitOSFunctionPointers(void)
         EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19CC0);
         EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE13BFC);
     }
+    else if(OS_FIRMWARE == 310)
+    {
+        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100C4E4);
+        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100C3D4);
+        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x010004D8);
+        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF15A0C);
 
+        EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19340);
+        EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE1329C);
+    }
+    else if(OS_FIRMWARE == 300 || OS_FIRMWARE == 301)
+    {
+        EXPORT_FUNC_WRITE(LiWaitIopComplete, (int (*)(int, int *))0x0100C4E4);
+        EXPORT_FUNC_WRITE(LiWaitIopCompleteWithInterrupts, (int (*)(int, int *))0x0100C3D4);
+        EXPORT_FUNC_WRITE(addr_LiWaitOneChunk, (int (*)(int, int *))0x010004D8);
+        EXPORT_FUNC_WRITE(addr_PrepareTitle_hook, (int (*)(int, int *))0xFFF15974);
+
+        EXPORT_FUNC_WRITE(addr_sgIsLoadingBuffer, (int (*)(int, int *))0xEFE19340);
+        EXPORT_FUNC_WRITE(addr_gDynloadInitialized, (int (*)(int, int *))0xEFE1329C);
+    }
     else
     {
         OSFatal("Missing all OS specific addresses.");
