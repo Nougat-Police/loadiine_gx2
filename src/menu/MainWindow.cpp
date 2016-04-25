@@ -32,7 +32,7 @@
 MainWindow::MainWindow(int w, int h)
     : width(w)
     , height(h)
-//  , gameClickSound(Resources::GetSound("game_click.mp3"))
+    , gameClickSound(Resources::GetSound("game_click.mp3"))
     , mainSwitchButtonFrame(NULL)
     , currentTvFrame(NULL)
     , currentDrcFrame(NULL)
@@ -69,7 +69,7 @@ MainWindow::~MainWindow()
         Resources::RemoveImageData(pointerImgData[i]);
     }
 
-//  Resources::RemoveSound(gameClickSound);
+    Resources::RemoveSound(gameClickSound);
 }
 
 void MainWindow::updateEffects()
@@ -400,8 +400,8 @@ void MainWindow::OnGameLaunch(GuiGameBrowser *element, int gameIdx)
 
     CSettings::setValueAsU16(CSettings::GameStartIndex,gameIdx);
 
-//  if(gameClickSound)
-//      gameClickSound->Play();
+    if(gameClickSound)
+        gameClickSound->Play();
 
     const discHeader *gameHdr = GameList::instance()->at(gameIdx);
 
