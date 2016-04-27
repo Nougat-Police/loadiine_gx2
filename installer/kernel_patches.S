@@ -106,7 +106,7 @@
 #define BAT4U_VAL                       0x008000FF
 #if VER >= 410
     #define BAT4L_VAL                   0x30800012
-#elif VER == 400
+#elif VER <= 400
     #define BAT4L_VAL                   0x4E800012
 #else
     #error Please define valid value for firmware setup.
